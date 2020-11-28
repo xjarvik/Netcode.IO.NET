@@ -65,14 +65,7 @@ namespace NetcodeIO.NET.Utils.IO
 
 		public bool Read(out Datagram packet)
 		{
-			if (datagramQueue.Count > 0)
-			{
-				packet = datagramQueue.Dequeue();
-				return true;
-			}
-
-			packet = new Datagram();
-			return false;
+			return datagramQueue.TryDequeue(out packet);
 		}
 
 		public void Close()
@@ -283,14 +276,7 @@ namespace NetcodeIO.NET.Utils.IO
 
 		public bool Read(out Datagram packet)
 		{
-			if (datagramQueue.Count > 0)
-			{
-				packet = datagramQueue.Dequeue();
-				return true;
-			}
-
-			packet = new Datagram();
-			return false;
+			return datagramQueue.TryDequeue(out packet);
 		}
 
 		public void Close()
