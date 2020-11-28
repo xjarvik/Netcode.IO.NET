@@ -81,6 +81,19 @@ namespace NetcodeIO.NET.Utils
 			lock(datagram_mutex)
 				datagramQueue.Enqueue(datagram);
 		}
+		
+		public bool TryDequeue(out Datagram datagram)
+		{
+			lock (datagram_mutex){
+				if (datagramQueue.Count > 0)
+				{
+					datagram = datagramQueue.Dequeue();
+					return true;
+				}  
+			}
+			datagram = new Datagram();
+			return false;
+		}
 
 		public Datagram Dequeue()
 		{
