@@ -295,14 +295,14 @@ namespace NetcodeIO.NET
 		/// <summary>
 		/// Send a payload to the server
 		/// </summary>
-		public void Send(byte[] payload, int payloadSize)
+		public void Send(byte[] payload, int payloadSize, int offset = 0)
 		{
 			if (state != ClientState.Connected)
 				throw new InvalidOperationException();
 
 			serializePacket(new NetcodePacketHeader() { PacketType = NetcodePacketType.ConnectionPayload }, (writer) =>
 			{
-				writer.WriteBuffer(payload, payloadSize);
+				writer.WriteBuffer(payload, payloadSize, offset);
 			}, clientToServerKey);
 		}
 

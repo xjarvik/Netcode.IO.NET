@@ -103,10 +103,10 @@ namespace NetcodeIO.NET.Utils.IO
 			}
 		}
 
-		public void WriteBuffer(byte[] buffer, int length)
+		public void WriteBuffer(byte[] buffer, int length, int offset = 0)
 		{
 			for (int i = 0; i < length; i++)
-				Write(buffer[i]);
+				Write(buffer[i + offset]);
 		}
 
 		public byte ReadByte() { return readStream.ReadByte(); }

@@ -57,9 +57,9 @@ namespace NetcodeIO.NET
 		/// <summary>
 		/// Send a payload to this client
 		/// </summary>
-		public void SendPayload(byte[] payload, int payloadSize)
+		public void SendPayload(byte[] payload, int payloadSize, int offset = 0)
 		{
-			server.SendPayload(this, payload, payloadSize);
+			server.SendPayload(this, payload, payloadSize, offset);
 		}
 
 		internal void Touch(double time)
@@ -310,9 +310,9 @@ namespace NetcodeIO.NET
 		/// <summary>
 		/// Send a payload to the remote client
 		/// </summary>
-		public void SendPayload(RemoteClient client, byte[] payload, int payloadSize)
+		public void SendPayload(RemoteClient client, byte[] payload, int payloadSize, int offset = 0)
 		{
-			sendPayloadToClient(client, payload, payloadSize);
+			sendPayloadToClient(client, payload, payloadSize, offset);
 		}
 
 		/// <summary>
@@ -822,7 +822,7 @@ namespace NetcodeIO.NET
 		}
 
 		// send a payload to a client
-		private void sendPayloadToClient(RemoteClient client, byte[] payload, int payloadSize)
+		private void sendPayloadToClient(RemoteClient client, byte[] payload, int payloadSize, int offset = 0)
 		{
 			// if the client isn't confirmed, send a keep-alive packet before this packet
 			if (!client.Confirmed)
@@ -835,7 +835,7 @@ namespace NetcodeIO.NET
 
 			serializePacket(new NetcodePacketHeader() { PacketType = NetcodePacketType.ConnectionPayload }, (writer) =>
 			{
-				writer.WriteBuffer(payload, payloadSize);
+				writer.WriteBuffer(payload, payloadSize, offset);
 			}, client.RemoteEndpoint, cryptKey);
 		}
 
