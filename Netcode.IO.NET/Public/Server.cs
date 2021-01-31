@@ -82,11 +82,12 @@ namespace NetcodeIO.NET
 	/// Event handler for when payload packets are received from a connected client
 	/// </summary>
 	public delegate void RemoteClientMessageReceivedEventHandler(RemoteClient sender, byte[] payload, int payloadSize);
+    public delegate void RemoteClientHoldMessageReceivedEventHandler(RemoteClient sender, byte[] payload, int payloadSize, Action done);
 
-	/// <summary>
-	/// Class for starting a Netcode.IO server and accepting connections from remote clients
-	/// </summary>
-	public sealed class Server
+    /// <summary>
+    /// Class for starting a Netcode.IO server and accepting connections from remote clients
+    /// </summary>
+    public sealed class Server
 	{
 		#region embedded types
 
@@ -115,6 +116,7 @@ namespace NetcodeIO.NET
 		/// Event triggered when a payload is received from a remote client
 		/// </summary>
 		public event RemoteClientMessageReceivedEventHandler OnClientMessageReceived;
+        public event RemoteClientHoldMessageReceivedEventHandler OnClientHoldMessageReceived;
 
 		/// <summary>
 		/// Log level for messages
@@ -312,7 +314,13 @@ namespace NetcodeIO.NET
 				foreach (var receiver in OnClientMessageReceived.GetInvocationList())
 					OnClientMessageReceived -= (RemoteClientMessageReceivedEventHandler)receiver;
 			}
-		}
+
+            if (OnClientHoldMessageReceived != null)
+            {
+                foreach (var receiver in OnClientHoldMessageReceived.GetInvocationList())
+                    OnClientHoldMessageReceived -= (RemoteClientHoldMessageReceivedEventHandler)receiver;
+            }
+        }
 
 		/// <summary>
 		/// Send a payload to the remote client
@@ -528,11 +536,32 @@ namespace NetcodeIO.NET
 			var clientIndex = encryptionManager.GetClientID(cryptIdx);
 			var client = clientSlots[clientIndex];
 
-			// trigger callback
-			if (OnClientMessageReceived != null)
-				OnClientMessageReceived(client, payloadPacket.Payload, payloadPacket.Length);
+            // trigger callback
 
-			payloadPacket.Release();
+            if (OnClientMessageReceived != null)
+                OnClientMessageReceived(client, payloadPacket.Payload, payloadPacket.Length);
+
+            if (OnClientHoldMessageReceived != null){
+                int numListeners = OnClientHoldMessageReceived?.GetInvocationList().Length ?? 0;
+                int numDone = 0;
+                bool released = false;
+                if(numListeners > 0){
+                    OnClientHoldMessageReceived?.Invoke(client, payloadPacket.Payload, payloadPacket.Length, () => {
+                        numDone++;
+                        if (numDone >= numListeners && !released){
+                            released = true;
+                            payloadPacket.Release();
+                        }
+                    });
+                }
+                else{
+                    payloadPacket.Release();
+                }
+            }
+            else{
+                payloadPacket.Release();
+            }
+            
 		}
 
 		// process an incoming connection keep alive packet

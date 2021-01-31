@@ -75,11 +75,12 @@ namespace NetcodeIO.NET
 	/// Event handler for when payloads are received from the server
 	/// </summary>
 	public delegate void ClientMessageReceivedHandler(byte[] payload, int payloadSize);
+    public delegate void ClientHoldMessageReceivedHandler(byte[] payload, int payloadSize, Action done);
 
-	/// <summary>
-	/// Class for connecting to and communicating with Netcode.IO servers
-	/// </summary>
-	public sealed class Client
+    /// <summary>
+    /// Class for connecting to and communicating with Netcode.IO servers
+    /// </summary>
+    public sealed class Client
 	{
 		#region Public Fields/Properties
 
@@ -155,12 +156,13 @@ namespace NetcodeIO.NET
 		/// Event triggered when a payload is received from the server
 		/// </summary>
 		public event ClientMessageReceivedHandler OnMessageReceived;
+        public event ClientHoldMessageReceivedHandler OnHoldMessageReceived;
 
-		#endregion
+        #endregion
 
-		#region Private fields
+        #region Private fields
 
-		private int tickrate = 60;
+        private int tickrate = 60;
 
 		private ISocketContext socket;
 
@@ -537,11 +539,31 @@ namespace NetcodeIO.NET
 			}
 
 			lastResponseTime = time;
-			if (OnMessageReceived != null)
-				OnMessageReceived(payloadPacket.Payload, payloadPacket.Length);
 
-			payloadPacket.Release();
-		}
+            if (OnMessageReceived != null)
+                OnMessageReceived(payloadPacket.Payload, payloadPacket.Length);
+
+            if (OnHoldMessageReceived != null){
+                int numListeners = OnHoldMessageReceived?.GetInvocationList().Length ?? 0;
+                int numDone = 0;
+                bool released = false;
+                if(numListeners > 0){
+                    OnHoldMessageReceived?.Invoke(payloadPacket.Payload, payloadPacket.Length, () => {
+                        numDone++;
+                        if (numDone >= numListeners && !released){
+                            released = true;
+                            payloadPacket.Release();
+                        }
+                    });
+                }
+                else{
+                    payloadPacket.Release();
+                }
+            }
+            else{
+                payloadPacket.Release();
+            }
+        }
 
 		private void processConnectionKeepAlive(NetcodePacketHeader header, int length, ByteArrayReaderWriter stream)
 		{
